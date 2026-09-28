@@ -1,27 +1,25 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101827">
-  <title>YangVM Manager</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827">
+<title>YangVM · Tiny CPU</title><link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top"><div class="brand"><span class="mark">Y</span><div><strong>YangVM</strong><small>MANAGER · V1 PROTOTYPE</small></div></div><span class="status"><i></i> Local mode</span></header>
-  <main>
-    <section class="intro"><p class="eyebrow">VIRTUAL MACHINE CONTROL</p><h1>내 가상 컴퓨터</h1><p>가상 머신 프로필을 만들고 상태를 관리하세요.</p></section>
-    <section class="summary"><div><span>등록된 머신</span><strong id="count">0</strong></div><div><span>실행 중</span><strong id="running">0</strong></div><div><span>할당 메모리</span><strong id="memory">0 GB</strong></div></section>
-    <div class="section-head"><h2>머신 목록</h2><button id="add" class="primary">＋ 새 VM 만들기</button></div>
-    <div id="machines" class="machines"></div>
-    <p class="notice"><b>ⓘ 프로토타입 안내</b> 지금은 가상 머신 관리 화면을 시험하는 버전입니다. 실행 버튼은 상태만 바꾸며 실제 운영체제를 부팅하지 않습니다.</p>
-  </main>
-  <dialog id="createDialog"><form id="createForm"><div class="dialog-head"><h2>새 가상 머신</h2><button type="button" class="close" id="close">×</button></div>
-    <label>머신 이름<input id="vmName" maxlength="28" placeholder="예: My Linux" required></label>
-    <label>운영체제<select id="os"><option>Linux</option><option>Windows</option><option>기타 / 테스트</option></select></label>
-    <label>메모리 <output id="ramOut">2 GB</output><input id="ram" type="range" min="1" max="4" value="2"></label>
-    <div class="dialog-actions"><button type="button" class="secondary" id="cancel">취소</button><button class="primary" type="submit">VM 만들기</button></div>
-  </form></dialog>
-  <script src="script.js"></script>
-</body>
-</html>
+<header class="top"><div class="brand"><span class="mark">Y</span><div><strong>YangVM</strong><small>TINY CPU · V0.1</small></div></div><span class="status">교육용 가상 CPU</span></header>
+<main>
+<section class="intro"><p class="eyebrow">MY FIRST VIRTUAL MACHINE</p><h1>나만의 가상 컴퓨터</h1><p>코드를 한 줄씩 실행하는 작은 가상 CPU를 직접 만들었어요.</p></section>
+<section class="panel"><div class="section-head"><h2>프로그램</h2><button id="resetCode" class="secondary">예제 복원</button></div>
+<textarea id="program" spellcheck="false" aria-label="가상 CPU 프로그램">LOAD A, 5
+LOAD B, 3
+ADD A, B
+PRINT A
+HALT</textarea>
+<div class="help">명령어: LOAD, ADD, SUB, STORE, PRINT, JMP, JNZ, HALT · 한 줄에 하나</div>
+<div class="buttons"><button id="run" class="primary">▶ 끝까지 실행</button><button id="step" class="secondary">한 줄 실행</button><button id="restart" class="secondary">초기화</button></div></section>
+<section class="grid">
+<div class="panel"><h2>CPU 레지스터</h2><div class="regs"><div><small>A</small><strong id="regA">0</strong></div><div><small>B</small><strong id="regB">0</strong></div><div><small>PC</small><strong id="pc">0</strong></div><div><small>상태</small><strong id="state">준비</strong></div></div></div>
+<div class="panel"><h2>실행 출력</h2><pre id="output">여기에 PRINT 결과가 표시돼요.</pre></div></section>
+<section class="panel"><h2>메모리 (처음 16칸)</h2><div id="memory" class="memory"></div></section>
+<section class="panel"><h2>실행 기록</h2><ol id="log"><li>프로그램을 실행해 보세요.</li></ol></section>
+<p class="notice"><b>중요:</b> YangVM 0.1은 직접 만든 교육용 가상 CPU 에뮬레이터예요. 실제 CPU를 가상화하거나 Windows·Debian을 부팅하는 VM은 아니에요.</p>
+</main><script src="script.js"></script></body></html>
