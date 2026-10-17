@@ -161,6 +161,16 @@ public class QemuConsoleActivity extends Activity {
                 }
                 vmDir.mkdirs();
                 copyIsoIfNeeded();
+                File firmwareFile = new File(vmDir, "QEMU_EFI.fd");
+                if (!firmwareFile.exists()) {
+                    try (InputStream firmwareIn = getAssets().open("firmware/QEMU_EFI.fd");
+                         OutputStream firmwareOut = new FileOutputStream(firmwareFile)) {
+                        byte[] firmwareBuffer = new byte[64 * 1024];
+                        int firmwareRead;
+                        while ((firmwareRead = firmwareIn.read(firmwareBuffer)) != -1) firmwareOut.write(firmwareBuffer, 0, firmwareRead);
+                    }
+                    append("ARM64 UEFI 펌웨어 준비 완료.\\n");
+                }
                 if (!diskFile.exists()) {
                     append("가상 디스크 생성 중 (" + diskGb + "GB, QCOW2 sparse image)...\n");
                     // Create a sparse QCOW2 disk using the bundled qemu-img binary.
@@ -179,6 +189,7 @@ public class QemuConsoleActivity extends Activity {
                 cmd.addAll(java.util.Arrays.asList(
                         "-machine", "virt",
                         "-cpu", "cortex-a53",
+                        "-bios", firmwareFile.getAbsolutePath(),
                         "-smp", "2",
                         "-m", Integer.toString(Math.max(512, ramMb)),
                         "-drive", "if=none,file=" + diskFile.getAbsolutePath() + ",format=qcow2,id=hd0",
