@@ -1,0 +1,18 @@
+NeoVM Android — third-party runtime notices
+
+1. QEMU runtime
+The ARM64 QEMU executables are sourced from the Pockr project bundle at the pinned commit below. QEMU is distributed under the GNU General Public License, version 2; consult the upstream QEMU source and license for the applicable terms.
+Source project: https://github.com/AI2TH/Pockr
+Pinned commit: f6d43483cc519987b4048962ea96303d99f3030d
+QEMU project: https://www.qemu.org/
+QEMU source: https://gitlab.com/qemu-project/qemu
+The Pockr project is archived; the runtime has not been independently rebuilt or audited by NeoVM.
+
+2. Pockr project files
+The Pockr project is licensed under the MIT License. The accompanying POCKR-MIT-LICENSE.txt contains its license text.
+Source: https://github.com/AI2TH/Pockr
+
+3. Other bundled shared libraries
+The ARM64 runtime bundle contains third-party shared libraries with their own license terms. Users redistributing the APK should review the pinned upstream repository and the licenses for each bundled dependency. This notice is not legal advice.
+
+NeoVM does not claim to be affiliated with VMware, QEMU, or AI2TH/Pockr.
