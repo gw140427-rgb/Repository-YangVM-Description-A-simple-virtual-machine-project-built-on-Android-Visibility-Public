@@ -38,6 +38,7 @@ final class VncClient {
     private void run() {
         try {
             connectWithRetry();
+            if (closed) return;
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
             handshake();
@@ -48,8 +49,11 @@ final class VncClient {
                         readFramebufferUpdate();
                         break;
                     case 1:
+                        // SetColorMapEntries: padding, first-colour index, number of entries.
                         in.readUnsignedByte();
-                        skipFully((long) in.readUnsignedShort() * 6L);
+                        in.readUnsignedShort();
+                        int colorCount = in.readUnsignedShort();
+                        skipFully((long) colorCount * 6L);
                         break;
                     case 2:
                         // Bell
@@ -196,24 +200,28 @@ final class VncClient {
                 }
                 byte[] rowBytes = new byte[w * 4];
                 int[] rowPixels = new int[w];
-                for (int row = 0; row < h; row++) {
-                    in.readFully(rowBytes);
-                    for (int col = 0, offset = 0; col < w; col++, offset += 4) {
-                        int blue = rowBytes[offset] & 255;
-                        int green = rowBytes[offset + 1] & 255;
-                        int red = rowBytes[offset + 2] & 255;
-                        rowPixels[col] = 0xff000000 | (red << 16) | (green << 8) | blue;
+                synchronized (framebuffer) {
+                    for (int row = 0; row < h; row++) {
+                        in.readFully(rowBytes);
+                        for (int col = 0, offset = 0; col < w; col++, offset += 4) {
+                            int blue = rowBytes[offset] & 255;
+                            int green = rowBytes[offset + 1] & 255;
+                            int red = rowBytes[offset + 2] & 255;
+                            rowPixels[col] = 0xff000000 | (red << 16) | (green << 8) | blue;
+                        }
+                        framebuffer.setPixels(rowPixels, 0, w, x, y + row, w, 1);
                     }
-                    framebuffer.setPixels(rowPixels, 0, w, x, y + row, w, 1);
                 }
             } else if (encoding == 1) { // CopyRect
                 int srcX = in.readUnsignedShort();
                 int srcY = in.readUnsignedShort();
                 if (w > 0 && h > 0 && x + w <= width && y + h <= height &&
                         srcX + w <= width && srcY + h <= height) {
-                    int[] copy = new int[w * h];
-                    framebuffer.getPixels(copy, 0, w, srcX, srcY, w, h);
-                    framebuffer.setPixels(copy, 0, w, x, y, w, h);
+                    synchronized (framebuffer) {
+                        int[] copy = new int[w * h];
+                        framebuffer.getPixels(copy, 0, w, srcX, srcY, w, h);
+                        framebuffer.setPixels(copy, 0, w, x, y, w, h);
+                    }
                 }
             } else {
                 throw new IOException("지원하지 않는 VNC 화면 인코딩: " + encoding);

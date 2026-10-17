@@ -48,6 +48,7 @@ public class QemuConsoleActivity extends Activity {
     private Button startButton, stopButton, sendButton, screenButton;
     private volatile Process qemuProcess;
     private volatile boolean starting = false;
+    private volatile boolean cancelStartup = false;
     private File vmDir, isoFile, diskFile;
 
     @Override protected void onCreate(Bundle state) {
@@ -155,7 +156,7 @@ public class QemuConsoleActivity extends Activity {
         sendP.topMargin = dp(8);
         root.addView(sendButton, sendP);
 
-        TextView warning = text("주의: ARM64 Linux ISO부터 시험하세요. 이 앱은 아직 화면 그래픽(VNC)·스냅샷·가속 기능을 제공하지 않으며, Windows GUI 설치를 보장하지 않습니다.", 11, muted, false);
+        TextView warning = text("주의: ARM64 Linux ISO부터 시험하세요. 그래픽 화면은 QEMU/VNC와 게스트 OS 호환성에 따라 달라집니다. 스냅샷과 하드웨어 가속은 아직 지원하지 않습니다.", 11, muted, false);
         warning.setPadding(0, dp(16), 0, 0);
         root.addView(warning);
         setContentView(page);
@@ -164,6 +165,7 @@ public class QemuConsoleActivity extends Activity {
     private void startVm() {
         if (starting || (qemuProcess != null && qemuProcess.isAlive())) return;
         starting = true;
+        cancelStartup = false;
         startButton.setEnabled(false);
         stopButton.setEnabled(false);
         status.setText("●  준비 중 — ISO 및 디스크 확인");
@@ -176,31 +178,87 @@ public class QemuConsoleActivity extends Activity {
                 if (!qemu.isFile() || !qemuImg.isFile()) {
                     throw new IllegalStateException("이 APK에 ARM64 QEMU 런타임이 없습니다. GitHub Actions의 최신 NeoVM-debug-APK 빌드를 사용해 주세요.");
                 }
-                vmDir.mkdirs();
+                checkStartupNotCancelled();
+                if (!vmDir.mkdirs() && !vmDir.isDirectory()) {
+                    throw new IllegalStateException("VM 저장 폴더를 만들 수 없습니다: " + vmDir.getAbsolutePath());
+                }
                 copyIsoIfNeeded();
+                checkStartupNotCancelled();
+
                 File firmwareFile = new File(vmDir, "QEMU_EFI.fd");
-                if (!firmwareFile.exists()) {
+                final long expectedFirmwareBytes = 64L * 1024L * 1024L;
+                if (!firmwareFile.isFile() || firmwareFile.length() != expectedFirmwareBytes) {
+                    File firmwareTemp = new File(vmDir, "QEMU_EFI.fd.tmp");
+                    if (firmwareTemp.exists() && !firmwareTemp.delete()) {
+                        throw new IllegalStateException("이전 임시 UEFI 파일을 정리할 수 없습니다.");
+                    }
+                    long copiedFirmwareBytes = 0L;
                     try (InputStream firmwareIn = getAssets().open("firmware/QEMU_EFI.fd");
-                         OutputStream firmwareOut = new FileOutputStream(firmwareFile)) {
+                         OutputStream firmwareOut = new FileOutputStream(firmwareTemp)) {
                         byte[] firmwareBuffer = new byte[64 * 1024];
                         int firmwareRead;
-                        while ((firmwareRead = firmwareIn.read(firmwareBuffer)) != -1) firmwareOut.write(firmwareBuffer, 0, firmwareRead);
+                        while ((firmwareRead = firmwareIn.read(firmwareBuffer)) != -1) {
+                            checkStartupNotCancelled();
+                            firmwareOut.write(firmwareBuffer, 0, firmwareRead);
+                            copiedFirmwareBytes += firmwareRead;
+                        }
+                        firmwareOut.flush();
+                    } catch (Exception e) {
+                        firmwareTemp.delete();
+                        throw e;
                     }
-                    append("ARM64 UEFI 펌웨어 준비 완료.\\n");
+                    if (copiedFirmwareBytes != expectedFirmwareBytes || firmwareTemp.length() != expectedFirmwareBytes) {
+                        firmwareTemp.delete();
+                        throw new IllegalStateException("UEFI 펌웨어 파일 크기가 올바르지 않습니다. 다시 빌드한 APK를 사용해 주세요.");
+                    }
+                    if (firmwareFile.exists() && !firmwareFile.delete()) {
+                        firmwareTemp.delete();
+                        throw new IllegalStateException("손상된 임시 UEFI 파일을 교체할 수 없습니다.");
+                    }
+                    if (!firmwareTemp.renameTo(firmwareFile)) {
+                        firmwareTemp.delete();
+                        throw new IllegalStateException("UEFI 펌웨어 파일을 최종 위치로 옮길 수 없습니다.");
+                    }
+                    append("ARM64 UEFI 펌웨어 준비 완료.\n");
                 }
+
+                checkStartupNotCancelled();
                 if (!diskFile.exists()) {
                     append("가상 디스크 생성 중 (" + diskGb + "GB, QCOW2 sparse image)...\n");
-                    // Create a sparse QCOW2 disk using the bundled qemu-img binary.
-                    ProcessBuilder diskBuilder = new ProcessBuilder(qemuImg.getAbsolutePath(), "create", "-f", "qcow2", diskFile.getAbsolutePath(), diskGb + "G");
+                    // Create a temporary disk first so an interrupted qemu-img command cannot leave a partial disk.qcow2.
+                    File diskTemp = new File(vmDir, "disk.qcow2.tmp");
+                    if (diskTemp.exists() && !diskTemp.delete()) {
+                        throw new IllegalStateException("이전 임시 가상 디스크를 정리할 수 없습니다.");
+                    }
+                    ProcessBuilder diskBuilder = new ProcessBuilder(qemuImg.getAbsolutePath(), "create", "-f", "qcow2", diskTemp.getAbsolutePath(), diskGb + "G");
                     diskBuilder.environment().put("LD_LIBRARY_PATH", getApplicationInfo().nativeLibraryDir);
                     diskBuilder.redirectErrorStream(true);
                     Process diskProc = diskBuilder.start();
                     String diskOutput = readAll(diskProc.getInputStream());
                     int code = diskProc.waitFor();
-                    if (code != 0) throw new IllegalStateException("qemu-img 실패 (" + code + "): " + diskOutput);
+                    if (code != 0 || !diskTemp.isFile() || diskTemp.length() == 0L) {
+                        diskTemp.delete();
+                        throw new IllegalStateException("qemu-img 가상 디스크 생성 실패 (" + code + "): " + diskOutput);
+                    }
+                    if (!diskTemp.renameTo(diskFile)) {
+                        diskTemp.delete();
+                        throw new IllegalStateException("가상 디스크 임시 파일을 최종 위치로 옮길 수 없습니다.");
+                    }
                     append("가상 디스크 생성 완료.\n");
                 }
 
+                // Inspect any existing disk before attaching it; never recreate or overwrite an existing user disk.
+                ProcessBuilder infoBuilder = new ProcessBuilder(qemuImg.getAbsolutePath(), "info", diskFile.getAbsolutePath());
+                infoBuilder.environment().put("LD_LIBRARY_PATH", getApplicationInfo().nativeLibraryDir);
+                infoBuilder.redirectErrorStream(true);
+                Process infoProc = infoBuilder.start();
+                String diskInfo = readAll(infoProc.getInputStream());
+                int infoCode = infoProc.waitFor();
+                if (infoCode != 0 || !diskInfo.toLowerCase(java.util.Locale.ROOT).contains("file format: qcow2")) {
+                    throw new IllegalStateException("가상 디스크 검증에 실패했습니다. 데이터 보호를 위해 기존 파일을 삭제하거나 덮어쓰지 않았습니다.\n" + diskInfo);
+                }
+
+                checkStartupNotCancelled();
                 List<String> cmd = new ArrayList<>();
                 cmd.add(qemu.getAbsolutePath());
                 cmd.addAll(java.util.Arrays.asList(
@@ -223,11 +281,18 @@ public class QemuConsoleActivity extends Activity {
                         "-monitor", "none",
                         "-no-reboot"
                 ));
+                checkStartupNotCancelled();
                 ProcessBuilder pb = new ProcessBuilder(cmd);
                 pb.environment().put("LD_LIBRARY_PATH", getApplicationInfo().nativeLibraryDir);
                 pb.redirectErrorStream(true);
                 Process proc = pb.start();
                 qemuProcess = proc;
+                if (cancelStartup) {
+                    proc.destroy();
+                    if (!proc.waitFor(3, TimeUnit.SECONDS)) proc.destroyForcibly();
+                    if (qemuProcess == proc) qemuProcess = null;
+                    return;
+                }
                 main.post(() -> {
                     starting = false;
                     startButton.setEnabled(false);
@@ -264,17 +329,28 @@ public class QemuConsoleActivity extends Activity {
                 reader.start();
             } catch (Exception e) {
                 starting = false;
+                if (cancelStartup || isFinishing()) {
+                    if (!isFinishing()) main.post(() -> {
+                        startButton.setEnabled(true);
+                        stopButton.setEnabled(false);
+                        if (screenButton != null) screenButton.setEnabled(false);
+                        status.setText("●  시작 취소됨");
+                    });
+                    return;
+                }
                 main.post(() -> {
                     startButton.setEnabled(true);
                     stopButton.setEnabled(false);
                     if (screenButton != null) screenButton.setEnabled(false);
                     status.setText("●  시작 실패");
                     append("\n오류: " + e.getMessage() + "\n");
-                    new AlertDialog.Builder(this)
-                            .setTitle("VM을 시작하지 못했어요")
-                            .setMessage(e.getMessage() == null ? "알 수 없는 오류" : e.getMessage())
-                            .setPositiveButton("확인", null)
-                            .show();
+                    if (!isFinishing()) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("VM을 시작하지 못했어요")
+                                .setMessage(e.getMessage() == null ? "알 수 없는 오류" : e.getMessage())
+                                .setPositiveButton("확인", null)
+                                .show();
+                    }
                 });
             }
         }, "NeoVM-QEMU-start").start();
@@ -299,7 +375,10 @@ public class QemuConsoleActivity extends Activity {
             if (in == null) throw new IllegalStateException("선택한 ISO 파일을 읽을 수 없습니다.");
             byte[] buf = new byte[1024 * 1024];
             int n;
-            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+            while ((n = in.read(buf)) != -1) {
+                checkStartupNotCancelled();
+                out.write(buf, 0, n);
+            }
             out.flush();
         } catch (Exception e) {
             temp.delete();
@@ -309,6 +388,12 @@ public class QemuConsoleActivity extends Activity {
         if (!temp.renameTo(isoFile)) throw new IllegalStateException("ISO 임시 파일을 최종 경로로 옮길 수 없습니다.");
         getSharedPreferences("neovm_runtime", MODE_PRIVATE).edit().putString("iso_" + vmId, isoUri).apply();
         append("ISO 복사 완료. 원본 파일은 삭제하지 않았습니다.\n");
+    }
+
+    private void checkStartupNotCancelled() throws InterruptedException {
+        if (cancelStartup || Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("VM 시작이 취소되었습니다.");
+        }
     }
 
     private long querySize(Uri uri) {
@@ -327,11 +412,16 @@ public class QemuConsoleActivity extends Activity {
     }
 
     private void stopVm() {
+        cancelStartup = true;
         Process p = qemuProcess;
         if (p == null) {
-            status.setText("●  중지됨");
-            startButton.setEnabled(true);
-            stopButton.setEnabled(false);
+            starting = false;
+            if (!isFinishing()) {
+                status.setText("●  중지됨");
+                startButton.setEnabled(true);
+                stopButton.setEnabled(false);
+                if (screenButton != null) screenButton.setEnabled(false);
+            }
             return;
         }
         status.setText("●  중지 요청 중...");

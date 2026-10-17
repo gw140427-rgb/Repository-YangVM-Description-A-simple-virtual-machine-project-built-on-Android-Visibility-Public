@@ -34,6 +34,7 @@ public class VncDisplayActivity extends Activity {
     private CanvasView canvasView;
     private TextView status;
     private String vmName;
+    private int connectionGeneration = 0;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -94,31 +95,36 @@ public class VncDisplayActivity extends Activity {
     }
 
     private void connect() {
+        final int generation = ++connectionGeneration;
         if (client != null) client.close();
         status.setText("VNC 연결 중...");
         canvasView.setFrame(null);
-        client = new VncClient(new VncClient.Listener() {
+        VncClient next = new VncClient(new VncClient.Listener() {
             @Override public void onConnected(int width, int height) {
                 main.post(() -> {
-                    if (client == null) return;
+                    if (generation != connectionGeneration || isFinishing()) return;
                     status.setText("연결됨 · " + width + " × " + height + " · 터치=마우스");
                 });
             }
 
             @Override public void onFrame(Bitmap bitmap) {
                 main.post(() -> {
-                    if (canvasView != null) canvasView.setFrame(bitmap);
+                    if (generation == connectionGeneration && canvasView != null && !isFinishing()) {
+                        canvasView.setFrame(bitmap);
+                    }
                 });
             }
 
             @Override public void onError(String message) {
                 main.post(() -> {
+                    if (generation != connectionGeneration || isFinishing()) return;
                     if (status != null) status.setText("VNC 오류: " + message);
-                    if (!isFinishing()) Toast.makeText(VncDisplayActivity.this, message, Toast.LENGTH_LONG).show();
+                    Toast.makeText(VncDisplayActivity.this, message, Toast.LENGTH_LONG).show();
                 });
             }
         });
-        client.start();
+        client = next;
+        next.start();
     }
 
     private void showKeyboardDialog() {
@@ -148,7 +154,6 @@ public class VncDisplayActivity extends Activity {
                 dialog.dismiss();
             });
         });
-        dialog.getWindow();
         dialog.show();
         dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
         editor.requestFocus();
@@ -169,6 +174,7 @@ public class VncDisplayActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        connectionGeneration++;
         if (client != null) client.close();
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         super.onDestroy();
@@ -193,14 +199,18 @@ public class VncDisplayActivity extends Activity {
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            if (frame == null || frame.isRecycled()) return;
-            float scale = Math.min(getWidth() / (float) frame.getWidth(), getHeight() / (float) frame.getHeight());
-            float dw = frame.getWidth() * scale;
-            float dh = frame.getHeight() * scale;
-            float left = (getWidth() - dw) / 2f;
-            float top = (getHeight() - dh) / 2f;
-            destination.set(left, top, left + dw, top + dh);
-            canvas.drawBitmap(frame, null, destination, paint);
+            Bitmap current = frame;
+            if (current == null) return;
+            synchronized (current) {
+                if (current.isRecycled()) return;
+                float scale = Math.min(getWidth() / (float) current.getWidth(), getHeight() / (float) current.getHeight());
+                float dw = current.getWidth() * scale;
+                float dh = current.getHeight() * scale;
+                float left = (getWidth() - dw) / 2f;
+                float top = (getHeight() - dh) / 2f;
+                destination.set(left, top, left + dw, top + dh);
+                canvas.drawBitmap(current, null, destination, paint);
+            }
         }
 
         @Override public boolean onTouchEvent(MotionEvent event) {
