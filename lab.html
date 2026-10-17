@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="YangVM Lab — 브라우저에서 CPU 에뮬레이터를 실험하고 운영체제와 가상화 원리를 배우는 실험실">
+<title>YangVM Lab · 가상 컴퓨터 실험실</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#131c30;--line:#293751;--text:#edf3ff;--muted:#a7b5cc;--blue:#7db5ff;--green:#8ee6bd;--amber:#ffd38b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#172847 0,#0b1020 55%);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Noto Sans KR",sans-serif}a{color:var(--blue)}a:focus,button:focus{outline:2px solid var(--amber);outline-offset:3px}.top{max-width:1050px;margin:auto;padding:20px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px}.mark{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#24518c;font-weight:900;font-size:24px}.brand strong{display:block;font-size:19px}.brand small,.tag{color:var(--muted);font-size:12px;letter-spacing:.08em}.pill{border:1px solid #35516f;border-radius:99px;padding:5px 10px;color:var(--green);font-size:12px}main{max-width:1050px;margin:auto;padding:28px 18px 60px}.hero{padding:28px 0 24px}.eyebrow{color:var(--green);font-size:12px;letter-spacing:.15em;font-weight:800}.hero h1{font-size:clamp(32px,7vw,54px);line-height:1.12;margin:10px 0}.hero p{color:var(--muted);max-width:690px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.btn{display:inline-block;text-decoration:none;border:1px solid #45617f;padding:10px 15px;border-radius:12px;font-weight:700}.btn.primary{background:#8fc4ff;color:#071326;border-color:#8fc4ff}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:14px;margin:18px 0}.card,.panel{background:linear-gradient(145deg,#151f34,#101827);border:1px solid var(--line);border-radius:18px;padding:19px;min-width:0}.card h2,.panel h2{font-size:19px;margin:8px 0}.card p,.panel p,.card li{color:var(--muted)}.icon{font-size:23px}.status{color:var(--amber);font-size:12px;font-weight:800}.section-title{margin:34px 0 10px;font-size:23px}.terminal{background:#070b13;border:1px solid #26354d;border-radius:14px;padding:15px;overflow:auto;color:#b8f7d6;font:13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}.terminal button{font:inherit;color:#dceaff;background:#17243a;border:1px solid #40536f;border-radius:8px;padding:5px 9px;margin:0 5px 8px 0}.notice{border-left:4px solid var(--amber);padding:12px 15px;background:#211e19;border-radius:0 12px 12px 0;color:#f6dfb5}.checklist label{display:block;padding:8px 0;color:var(--muted)}.checklist input{margin-right:9px;accent-color:#8fc4ff}footer{border-top:1px solid var(--line);margin-top:38px;padding-top:18px;color:var(--muted);font-size:13px}code{color:#d5e5ff;background:#1c2940;padding:2px 5px;border-radius:5px}@media(min-width:700px){.hero{padding:42px 0 30px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="brand"><span class="mark">Y</span><div><strong>YangVM Lab</strong><small>VIRTUAL COMPUTER EXPERIMENTS</small></div></div><span class="pill">실험실 · 초기 버전</span></header>
+<main>
+<section class="hero"><p class="eyebrow">BUILD · RUN · LEARN</p><h1>가상 컴퓨터를<br>직접 실험하는 곳.</h1><p>CPU 명령어부터 메모리, 운영체제 부팅 원리까지 한곳에서 탐구해요. 현재는 브라우저 기반 학습 실험실이며, 실제 Android·Debian·Windows 가상 머신을 실행한다고 가장하지 않아요.</p><div class="actions"><a class="btn primary" href="./index.html">▶ YangVM CPU 실행</a><a class="btn" href="https://github.com/gw140427-rgb/Repository-YangVM-Description-A-simple-virtual-machine-project-built-on-Android-Visibility-Public">GitHub 저장소</a></div></section>
+<div class="grid">
+<article class="card"><span class="icon">🧠</span><p class="status">지금 사용 가능</p><h2>01 · Tiny CPU</h2><p>8비트 레지스터 A/B, 256바이트 RAM, 명령어 한 줄 실행과 실행 기록을 확인해요.</p><a href="./index.html">CPU 실험 열기 →</a></article>
+<article class="card"><span class="icon">🧩</span><p class="status">학습 안내</p><h2>02 · VM 구조 연구</h2><p>가상 CPU, 메모리, 디스크 이미지, 부팅 과정이 서로 어떻게 다른지 정리해요.</p><a href="#vm-basics">기초 설명 보기 →</a></article>
+<article class="card"><span class="icon">🐧</span><p class="status">연구 노트</p><h2>03 · OS 실험 기록</h2><p>NeoOS 및 Linux 실험의 기기, 설정, 결과, 오류를 기록할 수 있는 체크리스트예요.</p><a href="#notes">실험 기록 시작 →</a></article>
+</div>
+<section id="vm-basics"><h2 class="section-title">실제 VM과 YangVM의 차이</h2><div class="panel"><p><b>YangVM 0.1</b>은 자체 명령어를 해석하는 교육용 에뮬레이터예요. 실제 CPU 하드웨어 가상화나 PC 운영체제 부팅 기능은 아직 없습니다.</p><p><b>실제 OS 가상 머신</b>은 CPU 아키텍처 에뮬레이션/가상화, RAM 관리, 가상 디스크, 부트 펌웨어, 게스트 OS를 함께 다뤄야 해요. 브라우저에서 실행하려면 별도의 WebAssembly 에뮬레이터 또는 서버 측 VM 실행 환경이 필요할 수 있어요.</p><div class="notice">안전·비용 원칙: 이 페이지는 브라우저에서 동작하며 별도 서버나 유료 API를 호출하지 않아요. 알 수 없는 OS 이미지나 실행 파일은 내려받아 실행하지 말고, 배포 허가와 출처를 먼저 확인하세요.</div></div></section>
+<section id="notes"><h2 class="section-title">내 실험 체크리스트</h2><div class="panel checklist"><p>체크는 현재 사용 중인 브라우저에만 저장돼요. 서버나 GitHub에 자동 업로드되지 않습니다.</p><label><input type="checkbox" data-check="cpu"> CPU 예제 실행 결과 확인</label><label><input type="checkbox" data-check="memory"> RAM 주소와 STORE 동작 실험</label><label><input type="checkbox" data-check="branch"> JMP / JNZ 분기 실험</label><label><input type="checkbox" data-check="os"> OS 실험은 기기·버전·설정·오류를 함께 기록</label><button class="btn" id="clearChecks" type="button">체크 초기화</button></div></section>
+<section><h2 class="section-title">다음 개발 단계</h2><div class="panel"><ol><li>현재 CPU 에뮬레이터의 입력 검증과 테스트 강화</li><li>명령어·레지스터·메모리 구조를 설명하는 학습 문서 추가</li><li>가상 디스크와 부팅 개념을 보여주는 안전한 시뮬레이션 설계</li><li>실제 VM 엔진을 넣을 경우 지원 아키텍처·메모리 한도·서버 비용을 검증한 뒤 별도 구현</li></ol><p>이 목록은 개발 계획이며, 아직 구현 완료를 의미하지 않아요.</p></div></section>
+<footer>YangVM Lab · 교육용 프로젝트 · <a href="https://github.com/gw140427-rgb/Repository-YangVM-Description-A-simple-virtual-machine-project-built-on-Android-Visibility-Public">소스 코드</a><br>개인 실험 체크는 이 브라우저의 localStorage에만 저장됩니다.</footer>
+</main>
+<script>
+document.querySelectorAll("[data-check]").forEach(el=>{const key="yangvm-lab-"+el.dataset.check;try{el.checked=localStorage.getItem(key)==="1";el.addEventListener("change",()=>{try{localStorage.setItem(key,el.checked?"1":"0")}catch(e){}})}catch(e){}});
+document.getElementById("clearChecks").addEventListener("click",()=>{document.querySelectorAll("[data-check]").forEach(el=>{el.checked=false;try{localStorage.removeItem("yangvm-lab-"+el.dataset.check)}catch(e){}})});
+</script>
+</body>
+</html>
