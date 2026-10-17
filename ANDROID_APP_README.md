@@ -7,13 +7,16 @@ NeoVM is an Android-first virtual machine manager prototype inspired by desktop 
 - Select a guest OS preset, memory size, and virtual disk capacity.
 - Pick an ISO file through Android's document picker.
 - Start an ARM64 QEMU process from the bundled runtime and show its serial console.
+- Open the guest's graphical framebuffer in the app through a VNC viewer.
+- Send touch-based mouse events and text typed with the Android soft keyboard.
 - Create a persistent QCOW2 virtual disk for each VM profile.
 - Stop a running QEMU process from the console screen.
 - GitHub Actions workflow builds a debug APK and attaches it as a 14-day artifact.
 
 ## Important limitations
-- This is an early alpha. The current guest display is a **serial console only**. It does not yet provide a graphical VGA/VNC display, snapshots, suspend/resume, or hardware acceleration.
-- Begin with an ARM64 Linux ISO that supports serial-console installation. A typical graphical installer may show no useful output, and Windows GUI installation is not supported/verified.
+- This is an early alpha. It now attempts to provide a graphical framebuffer through QEMU's local VNC server and an in-app RFB viewer, including touch-as-mouse and a text-entry dialog. The VNC server is configured to bind to 127.0.0.1 only.
+- Graphical output depends on the bundled QEMU build including VNC and virtio-gpu support. This code path has not yet been exercised on a physical Galaxy A16; a successful APK build does not prove that an ISO boots or that VNC rendering works on the phone.
+- Snapshots, suspend/resume, and hardware acceleration are not implemented. Start with an ARM64 Linux ISO; guest compatibility and performance vary.
 - The QEMU runtime is fetched from the pinned, archived Pockr project during CI. It has not been independently rebuilt or audited by NeoVM. Third-party notices are bundled in the app assets.
 - The app copies the selected ISO into private app storage and creates a sparse QCOW2 disk. Ensure there is enough free storage. The ISO source file is not deleted.
 - Emulation may be slow and memory-intensive on a phone. Choose modest RAM settings first; Android may terminate the app if system memory is low.

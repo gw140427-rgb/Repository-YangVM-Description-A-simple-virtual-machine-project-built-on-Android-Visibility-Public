@@ -45,7 +45,7 @@ public class QemuConsoleActivity extends Activity {
     private TextView status, console;
     private ScrollView consoleScroll;
     private EditText input;
-    private Button startButton, stopButton, sendButton;
+    private Button startButton, stopButton, sendButton, screenButton;
     private volatile Process qemuProcess;
     private volatile boolean starting = false;
     private File vmDir, isoFile, diskFile;
@@ -90,7 +90,7 @@ public class QemuConsoleActivity extends Activity {
         statusCard.setBackground(round(panel, 14));
         status = text("●  중지됨", 14, muted, true);
         statusCard.addView(status);
-        TextView hint = text("현재 화면은 QEMU의 직렬 콘솔을 표시합니다. GUI 설치 화면은 아직 지원하지 않습니다.", 12, muted, false);
+        TextView hint = text("VM 화면은 VNC로 열 수 있습니다. 직렬 콘솔도 아래에 계속 표시됩니다.", 12, muted, false);
         hint.setPadding(0, dp(8), 0, 0);
         statusCard.addView(hint);
         root.addView(statusCard);
@@ -107,6 +107,22 @@ public class QemuConsoleActivity extends Activity {
         stopButton.setOnClickListener(v -> stopVm());
         actions.addView(stopButton, stopP);
         root.addView(actions);
+
+        screenButton = button("화면 보기 (VNC)", false);
+        screenButton.setEnabled(false);
+        screenButton.setOnClickListener(v -> {
+            Process running = qemuProcess;
+            if (running == null || !running.isAlive()) {
+                Toast.makeText(this, "먼저 VM을 시작해 주세요.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Intent viewIntent = new Intent(this, VncDisplayActivity.class);
+            viewIntent.putExtra("vm_name", vmName);
+            startActivity(viewIntent);
+        });
+        LinearLayout.LayoutParams screenP = new LinearLayout.LayoutParams(-1, dp(44));
+        screenP.bottomMargin = dp(12);
+        root.addView(screenButton, screenP);
 
         TextView consoleTitle = text("직렬 콘솔 출력", 14, white, true);
         consoleTitle.setPadding(0, dp(5), 0, dp(8));
@@ -151,6 +167,7 @@ public class QemuConsoleActivity extends Activity {
         startButton.setEnabled(false);
         stopButton.setEnabled(false);
         status.setText("●  준비 중 — ISO 및 디스크 확인");
+        if (screenButton != null) screenButton.setEnabled(false);
         append("VM 시작 요청: QEMU 런타임 확인 중...\n");
         new Thread(() -> {
             try {
@@ -200,7 +217,8 @@ public class QemuConsoleActivity extends Activity {
                         "-boot", "order=d",
                         "-netdev", "user,id=net0",
                         "-device", "virtio-net-device,netdev=net0",
-                        "-display", "none",
+                        "-device", "virtio-gpu-device",
+                        "-vnc", "127.0.0.1:0",
                         "-serial", "stdio",
                         "-monitor", "none",
                         "-no-reboot"
@@ -214,8 +232,9 @@ public class QemuConsoleActivity extends Activity {
                     starting = false;
                     startButton.setEnabled(false);
                     stopButton.setEnabled(true);
+                    if (screenButton != null) screenButton.setEnabled(true);
                     status.setText("●  QEMU 실행 중 — 게스트 부팅 대기");
-                    append("QEMU 프로세스가 시작됐습니다. 부팅 메시지가 보이지 않으면 해당 ISO가 직렬 콘솔 출력을 지원하지 않을 수 있습니다.\n");
+                    append("QEMU 프로세스가 시작됐습니다. '화면 보기 (VNC)'를 눌러 그래픽 화면을 열 수 있습니다.\n");
                 });
                 Thread reader = new Thread(() -> {
                     try {
@@ -235,6 +254,7 @@ public class QemuConsoleActivity extends Activity {
                             starting = false;
                             startButton.setEnabled(true);
                             stopButton.setEnabled(false);
+                            if (screenButton != null) screenButton.setEnabled(false);
                             status.setText("●  중지됨 (종료 코드 " + exit + ")");
                             append("\nQEMU가 종료됐습니다. 코드: " + exit + "\n");
                         });
@@ -247,6 +267,7 @@ public class QemuConsoleActivity extends Activity {
                 main.post(() -> {
                     startButton.setEnabled(true);
                     stopButton.setEnabled(false);
+                    if (screenButton != null) screenButton.setEnabled(false);
                     status.setText("●  시작 실패");
                     append("\n오류: " + e.getMessage() + "\n");
                     new AlertDialog.Builder(this)
@@ -328,6 +349,7 @@ public class QemuConsoleActivity extends Activity {
                 if (qemuProcess == p) qemuProcess = null;
                 startButton.setEnabled(true);
                 stopButton.setEnabled(false);
+                if (screenButton != null) screenButton.setEnabled(false);
                 status.setText("●  중지됨");
                 append("\nVM 중지됨.\n");
             });

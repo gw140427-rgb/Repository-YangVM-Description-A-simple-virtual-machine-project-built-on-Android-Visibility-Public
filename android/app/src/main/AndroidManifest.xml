@@ -5,6 +5,7 @@
         android:label="NeoVM"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <activity android:name=".VncDisplayActivity" android:exported="false" />
         <activity android:name=".QemuConsoleActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
