@@ -384,8 +384,30 @@ public class QemuConsoleActivity extends Activity {
             temp.delete();
             throw e;
         }
-        if (isoFile.exists() && !isoFile.delete()) throw new IllegalStateException("이전 ISO 복사본을 교체할 수 없습니다.");
-        if (!temp.renameTo(isoFile)) throw new IllegalStateException("ISO 임시 파일을 최종 경로로 옮길 수 없습니다.");
+        if (size > 0 && temp.length() != size) {
+            temp.delete();
+            throw new IllegalStateException("복사한 ISO 크기가 원본과 달라요. 원본 파일을 확인한 뒤 다시 시도해 주세요.");
+        }
+        // Swap the completed temporary ISO only after it has been copied and size-checked.
+        File previousIso = new File(vmDir, "installer.iso.previous");
+        if (previousIso.exists() && !previousIso.delete()) {
+            temp.delete();
+            throw new IllegalStateException("이전 ISO 백업 임시 파일을 정리할 수 없습니다.");
+        }
+        boolean movedPrevious = false;
+        if (isoFile.exists()) {
+            if (!isoFile.renameTo(previousIso)) {
+                temp.delete();
+                throw new IllegalStateException("기존 ISO 복사본을 안전하게 교체할 수 없습니다.");
+            }
+            movedPrevious = true;
+        }
+        if (!temp.renameTo(isoFile)) {
+            if (movedPrevious) previousIso.renameTo(isoFile);
+            temp.delete();
+            throw new IllegalStateException("ISO 임시 파일을 최종 경로로 옮길 수 없습니다. 기존 복사본은 가능한 경우 복원했습니다.");
+        }
+        if (previousIso.exists()) previousIso.delete();
         getSharedPreferences("neovm_runtime", MODE_PRIVATE).edit().putString("iso_" + vmId, isoUri).apply();
         append("ISO 복사 완료. 원본 파일은 삭제하지 않았습니다.\n");
     }

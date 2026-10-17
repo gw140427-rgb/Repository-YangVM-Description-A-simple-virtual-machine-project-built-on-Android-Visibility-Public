@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
         TextView headline = text("내 가상 컴퓨터,\n한곳에서 관리하기.", 28, white, true);
         headline.setPadding(0, dp(30), 0, dp(9));
         root.addView(headline);
-        TextView desc = text("VM 설정을 만들고 ISO 이미지를 연결해 보세요.\n실제 운영체제 부팅 엔진은 아직 연결되지 않았어요.", 14, muted, false);
+        TextView desc = text("VM 설정을 만들고 ARM64 ISO를 연결해 실행해 보세요.\nQEMU와 그래픽 화면은 아직 실험 단계예요.", 14, muted, false);
         desc.setLineSpacing(dp(4), 1.0f);
         root.addView(desc);
 
@@ -90,10 +90,10 @@ public class MainActivity extends Activity {
         statusCard.setBackground(round(panel, 18));
         LinearLayout statusLine = new LinearLayout(this);
         statusLine.setGravity(Gravity.CENTER_VERTICAL);
-        statusLine.addView(text("●", 13, Color.rgb(255, 197, 93), true));
-        statusLine.addView(text("  가상화 엔진 연결 대기", 14, white, true));
+        statusLine.addView(text("●", 13, Color.rgb(139, 155, 255), true));
+        statusLine.addView(text("  ARM64 QEMU 엔진 포함 · 알파", 14, white, true));
         statusCard.addView(statusLine);
-        TextView engineBody = text("현재 버전: VM 프로필 저장 · RAM/디스크 설정 · ISO 파일 선택", 12, muted, false);
+        TextView engineBody = text("VM 프로필 · QCOW2 가상 디스크 · 직렬 콘솔 · 실험적 VNC 그래픽 화면", 12, muted, false);
         engineBody.setPadding(0, dp(8), 0, 0);
         statusCard.addView(engineBody);
         LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(-1, -2);
@@ -119,7 +119,7 @@ public class MainActivity extends Activity {
         root.addView(machineList, listParams);
         renderMachines();
 
-        TextView foot = text("NeoVM · Android edition · 0.1.0\n설정 데이터는 이 기기에 저장됩니다.", 11, muted, false);
+        TextView foot = text("NeoVM · Android edition · 0.2.2\n설정과 가상 디스크는 앱 내부 저장 공간에 보관됩니다.", 11, muted, false);
         foot.setGravity(Gravity.CENTER);
         foot.setPadding(0, dp(27), 0, dp(4));
         root.addView(foot);
