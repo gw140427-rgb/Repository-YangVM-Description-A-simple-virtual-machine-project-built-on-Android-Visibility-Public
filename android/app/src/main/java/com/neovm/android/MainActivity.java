@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
     private static final int REQUEST_ISO = 431;
     private static final String PREFS = "neovm_config";
     private static final String KEY_VMS = "virtual_machines";
+    private static final String KEY_VMS_BACKUP = "virtual_machines_backup";
     private final ArrayList<VmConfig> machines = new ArrayList<>();
     private LinearLayout machineList;
     private TextView summary;
@@ -119,7 +120,7 @@ public class MainActivity extends Activity {
         root.addView(machineList, listParams);
         renderMachines();
 
-        TextView foot = text("NeoVM · Android edition · 0.2.2\n설정과 가상 디스크는 앱 내부 저장 공간에 보관됩니다.", 11, muted, false);
+        TextView foot = text("NeoVM · Android edition · 0.2.5\nVM 설정은 자동 저장되며, 저장 복구용 백업도 유지됩니다.", 11, muted, false);
         foot.setGravity(Gravity.CENTER);
         foot.setPadding(0, dp(27), 0, dp(4));
         root.addView(foot);
@@ -225,7 +226,7 @@ public class MainActivity extends Activity {
         Spinner os = spinner(new String[]{"Debian GNU/Linux", "Ubuntu Linux", "기타 Linux", "Windows (ARM64 ISO)"});
         form.addView(os, fullWidth());
         form.addView(formLabel("RAM 메모리"));
-        Spinner ram = spinner(new String[]{"512 MB", "1024 MB", "2048 MB", "3072 MB", "4096 MB"});
+        Spinner ram = spinner(new String[]{"512 MB", "768 MB", "1024 MB", "1536 MB", "2048 MB"});
         ram.setSelection(1);
         form.addView(ram, fullWidth());
         form.addView(formLabel("가상 디스크 용량"));
@@ -338,7 +339,7 @@ public class MainActivity extends Activity {
     private void confirmDelete(VmConfig vm) {
         new AlertDialog.Builder(this)
                 .setTitle("가상 머신 삭제")
-                .setMessage("'" + vm.name + "'의 NeoVM 설정을 삭제할까요? 선택한 원본 ISO 파일은 삭제하지 않습니다.")
+                .setMessage("'" + vm.name + "'의 목록 설정만 삭제할까요? 원본 ISO와 가상 디스크 파일은 자동 삭제하지 않아 데이터를 보존합니다.")
                 .setNegativeButton("취소", null)
                 .setPositiveButton("삭제", (d, w) -> {
                     machines.remove(vm);
@@ -347,23 +348,40 @@ public class MainActivity extends Activity {
                 }).show();
     }
 
+    private ArrayList<VmConfig> parseMachines(String raw) throws Exception {
+        JSONArray array = new JSONArray(raw);
+        ArrayList<VmConfig> parsed = new ArrayList<>();
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject o = array.getJSONObject(i);
+            VmConfig vm = new VmConfig();
+            vm.id = o.optString("id", UUID.randomUUID().toString());
+            vm.name = o.optString("name", "새 가상 머신");
+            vm.guestOs = o.optString("guestOs", "기타 Linux");
+            vm.ramMb = Math.max(512, Math.min(2048, o.optInt("ramMb", 1024)));
+            vm.diskGb = Math.max(4, Math.min(64, o.optInt("diskGb", 16)));
+            vm.isoUri = o.isNull("isoUri") ? null : o.optString("isoUri", null);
+            parsed.add(vm);
+        }
+        return parsed;
+    }
+
     private void loadMachines() {
-        String raw = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_VMS, "[]");
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String raw = prefs.getString(KEY_VMS, "[]");
         try {
-            JSONArray array = new JSONArray(raw);
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject o = array.getJSONObject(i);
-                VmConfig vm = new VmConfig();
-                vm.id = o.optString("id", UUID.randomUUID().toString());
-                vm.name = o.optString("name", "새 가상 머신");
-                vm.guestOs = o.optString("guestOs", "기타 Linux");
-                vm.ramMb = o.optInt("ramMb", 1024);
-                vm.diskGb = o.optInt("diskGb", 16);
-                vm.isoUri = o.isNull("isoUri") ? null : o.optString("isoUri", null);
-                machines.add(vm);
-            }
-        } catch (Exception e) {
+            machines.addAll(parseMachines(raw));
+            return;
+        } catch (Exception invalidCurrentData) {
+            // Keep the last known-good profile JSON instead of silently losing every VM.
+        }
+        String backup = prefs.getString(KEY_VMS_BACKUP, "[]");
+        try {
+            machines.addAll(parseMachines(backup));
+            prefs.edit().putString(KEY_VMS, backup).commit();
+            Toast.makeText(this, "설정 파일 오류를 감지해 이전 자동 백업에서 복구했어요.", Toast.LENGTH_LONG).show();
+        } catch (Exception invalidBackup) {
             machines.clear();
+            Toast.makeText(this, "VM 설정과 백업을 읽지 못했어요. 기존 파일을 덮어쓰지 않도록 설정 저장을 확인해 주세요.", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -380,9 +398,21 @@ public class MainActivity extends Activity {
                 o.put("isoUri", vm.isoUri == null ? JSONObject.NULL : vm.isoUri);
                 array.put(o);
             }
-            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_VMS, array.toString()).apply();
+            SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+            String previous = prefs.getString(KEY_VMS, "[]");
+            // Only rotate a known-valid current snapshot into the backup slot.
+            try {
+                new JSONArray(previous);
+            } catch (Exception invalidPrevious) {
+                previous = prefs.getString(KEY_VMS_BACKUP, "[]");
+            }
+            boolean saved = prefs.edit()
+                    .putString(KEY_VMS_BACKUP, previous)
+                    .putString(KEY_VMS, array.toString())
+                    .commit();
+            if (!saved) Toast.makeText(this, "설정을 저장하지 못했어요. 저장 공간을 확인해 주세요.", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
-            Toast.makeText(this, "설정을 저장하지 못했어요.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "설정을 저장하지 못했어요: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

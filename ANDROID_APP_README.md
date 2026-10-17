@@ -3,7 +3,7 @@
 NeoVM is an Android-first virtual machine manager prototype inspired by desktop VM managers.
 
 ## Current features
-- Create and save VM profiles locally.
+- Create and save VM profiles locally, with a last-known-good JSON backup and automatic recovery if the current profile data becomes unreadable.
 - Select a guest OS preset, memory size, and virtual disk capacity.
 - Pick an ISO file through Android's document picker.
 - Start an ARM64 QEMU process from the bundled runtime and show its serial console.
@@ -20,8 +20,9 @@ NeoVM is an Android-first virtual machine manager prototype inspired by desktop 
 - The QEMU runtime is fetched from the pinned, archived Pockr project during CI. It has not been independently rebuilt or audited by NeoVM. Third-party notices are bundled in the app assets.
 - The app copies the selected ISO into private app storage, verifies its copied size, and only switches the copy after the new file is complete. It creates a sparse QCOW2 disk. Ensure there is enough free storage. The ISO source file is not deleted.
 - VM profiles, copied ISO files, firmware cache, and virtual disks are stored in the app's private data. Uninstalling the app removes these local files. GitHub-hosted debug builds may use different signing keys between runs, so do not uninstall an existing installation that contains data you need to preserve unless you have made a separate backup.
-- Emulation may be slow and memory-intensive on a phone. Choose modest RAM settings first; Android may terminate the app if system memory is low.
+- Emulation may be slow and memory-intensive on a phone. The UI offers safer RAM presets, and startup checks available host memory before launching QEMU to fail with a clear message instead of knowingly starting an overcommitted guest. Android may still terminate the app if system memory changes rapidly.
 - Startup now creates firmware and new QCOW2 disks through temporary files, checks existing QCOW2 disks before attaching them, cancels startup without allowing overlapping workers if the console activity is closed, and uses a one-time CD boot followed by disk-first boot so installer reboots can proceed to the installed system. These checks reduce stale partial-file and orphan-process problems but do not replace a runtime guest-boot test.
+- VNC touch events in the letterboxed margins are ignored rather than mapped to accidental clicks at the guest display edges.
 - APK build success proves compilation only. Actual guest boot and VNC rendering on a physical Galaxy A16 have not been tested by this workflow.
 
 ## Build

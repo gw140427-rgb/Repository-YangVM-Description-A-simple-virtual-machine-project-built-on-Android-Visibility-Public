@@ -259,6 +259,19 @@ public class QemuConsoleActivity extends Activity {
                 }
 
                 checkStartupNotCancelled();
+                android.app.ActivityManager activityManager =
+                        (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                android.app.ActivityManager.MemoryInfo memoryInfo =
+                        new android.app.ActivityManager.MemoryInfo();
+                activityManager.getMemoryInfo(memoryInfo);
+                long guestRamBytes = (long) Math.max(512, ramMb) * 1024L * 1024L;
+                long hostReserveBytes = 384L * 1024L * 1024L;
+                if (memoryInfo.availMem < guestRamBytes + hostReserveBytes) {
+                    throw new IllegalStateException("휴대폰의 사용 가능 메모리가 부족해 VM을 시작하지 않았어요.\n" +
+                            "현재 사용 가능: " + (memoryInfo.availMem / (1024 * 1024)) + "MB, " +
+                            "선택한 VM RAM: " + ramMb + "MB.\n" +
+                            "다른 앱을 닫거나 VM RAM을 낮춘 뒤 다시 시도해 주세요.");
+                }
                 List<String> cmd = new ArrayList<>();
                 cmd.add(qemu.getAbsolutePath());
                 cmd.addAll(java.util.Arrays.asList(
@@ -327,7 +340,9 @@ public class QemuConsoleActivity extends Activity {
                     try {
                         int exit = proc.waitFor();
                         main.post(() -> {
-                            if (qemuProcess == proc) qemuProcess = null;
+                            // Ignore stale completion callbacks after Stop has already finalized this process.
+                            if (qemuProcess != proc) return;
+                            qemuProcess = null;
                             starting = false;
                             startButton.setEnabled(true);
                             stopButton.setEnabled(false);

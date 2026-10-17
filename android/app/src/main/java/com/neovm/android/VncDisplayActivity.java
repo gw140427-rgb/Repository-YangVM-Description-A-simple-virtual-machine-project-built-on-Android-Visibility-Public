@@ -223,14 +223,21 @@ public class VncDisplayActivity extends Activity {
             float dh = current.getHeight() * scale;
             float left = (getWidth() - dw) / 2f;
             float top = (getHeight() - dh) / 2f;
-            int x = Math.round((event.getX() - left) / scale);
-            int y = Math.round((event.getY() - top) / scale);
-            int buttonMask = event.getActionMasked() == MotionEvent.ACTION_UP ||
-                    event.getActionMasked() == MotionEvent.ACTION_CANCEL ? 0 : 1;
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN ||
-                    event.getActionMasked() == MotionEvent.ACTION_MOVE ||
-                    event.getActionMasked() == MotionEvent.ACTION_UP ||
-                    event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE ||
+                    action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                // Ignore letterbox margins; do not turn taps outside the guest image into edge clicks.
+                boolean inside = event.getX() >= left && event.getX() <= left + dw &&
+                        event.getY() >= top && event.getY() <= top + dh;
+                if (!inside) {
+                    if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                        active.sendPointer(0, 0, 0);
+                    }
+                    return true;
+                }
+                int x = Math.round((event.getX() - left) / scale);
+                int y = Math.round((event.getY() - top) / scale);
+                int buttonMask = action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL ? 0 : 1;
                 active.sendPointer(x, y, buttonMask);
                 return true;
             }
