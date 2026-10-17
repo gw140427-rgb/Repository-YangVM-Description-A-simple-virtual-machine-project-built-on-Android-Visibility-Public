@@ -53,7 +53,7 @@ jobs:
           sudo apt-get update -qq
           cd /tmp
           apt-get download qemu-efi-aarch64
-          mkdir -p /tmp/neovm-uefi android/app/src/main/assets/firmware
+          mkdir -p /tmp/neovm-uefi "$GITHUB_WORKSPACE/android/app/src/main/assets/firmware"
           dpkg-deb -x /tmp/qemu-efi-aarch64_*.deb /tmp/neovm-uefi
           firmware="$(find /tmp/neovm-uefi/usr/share -name 'QEMU_EFI.fd' -o -name 'AAVMF_CODE.fd' | head -n 1)"
           test -n "$firmware"
