@@ -41,39 +41,74 @@ jobs:
           set -euo pipefail
           sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
 
-      - name: Fetch ARM64 QEMU runtime and inspect ELF dependencies
+      - name: Fetch pinned ARM64 QEMU runtime and all bundled libraries
         shell: bash
         run: |
           set -euo pipefail
-          upstream_ref="main"
-          base_url="https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_ref}/android/app/src/main/jniLibs/arm64-v8a"
+          upstream_commit="f6d43483cc519987b4048962ea96303d99f3030d"
           libdir="android/app/src/main/jniLibs/arm64-v8a"
           mkdir -p "$libdir" android/app/src/main/assets/third_party
-          for lib in libqemu.so libqemu_img.so libssh.so; do
-            curl -fL --retry 3 "${base_url}/${lib}" -o "${libdir}/${lib}"
-            test -s "${libdir}/${lib}"
-            file "${libdir}/${lib}"
-          done
+          curl -fL --retry 3 "https://api.github.com/repos/AI2TH/Pockr/git/trees/${upstream_commit}?recursive=1" -o /tmp/pockr-tree.json
+          python3 - "$upstream_commit" "$libdir" <<'PY'
+          import json, os, sys, urllib.request
+          commit, libdir = sys.argv[1], sys.argv[2]
+          with open("/tmp/pockr-tree.json", encoding="utf-8") as f:
+              tree = json.load(f)["tree"]
+          prefix = "android/app/src/main/jniLibs/arm64-v8a/"
+          paths = [item["path"] for item in tree if item.get("type") == "blob"
+                   and item["path"].startswith(prefix) and item["path"].endswith(".so")]
+          if not paths or "android/app/src/main/jniLibs/arm64-v8a/libqemu.so" not in paths:
+              raise SystemExit("Pinned upstream tree does not contain the expected ARM64 QEMU runtime")
+          if "android/app/src/main/jniLibs/arm64-v8a/libssh.so" not in paths:
+              raise SystemExit("Pinned upstream tree does not contain libssh.so")
+          os.makedirs(libdir, exist_ok=True)
+          for path in paths:
+              name = os.path.basename(path)
+              url = f"https://raw.githubusercontent.com/AI2TH/Pockr/{commit}/{path}"
+              request = urllib.request.Request(url, headers={"User-Agent": "NeoVM-GitHub-Actions"})
+              with urllib.request.urlopen(request, timeout=120) as response, open(os.path.join(libdir, name), "wb") as output:
+                  output.write(response.read())
+              if os.path.getsize(os.path.join(libdir, name)) == 0:
+                  raise SystemExit(f"Downloaded empty native library: {name}")
+              print(f"Fetched {name} ({os.path.getsize(os.path.join(libdir, name))} bytes)")
+          print(f"Fetched {len(paths)} ARM64 shared libraries from pinned source {commit}")
+          PY
+          curl -fL --retry 3 "https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_commit}/LICENSE" -o android/app/src/main/assets/third_party/POCKR-LICENSE.txt
+          curl -fL --retry 3 "https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_commit}/LICENSES.md" -o android/app/src/main/assets/third_party/POCKR-THIRD-PARTY-LICENSES.md
+          test -s "${libdir}/libqemu.so"
+          test -s "${libdir}/libqemu_img.so"
+          test -s "${libdir}/libssh.so"
           echo "=== libqemu_img.so ELF dependencies ==="
-          readelf -d "${libdir}/libqemu_img.so" | grep NEEDED || true
+          readelf -d "${libdir}/libqemu_img.so" | grep NEEDED
           echo "=== libssh.so ELF dependencies ==="
-          readelf -d "${libdir}/libssh.so" | grep NEEDED || true
-          echo "=== libqemu.so ELF dependencies ==="
-          readelf -d "${libdir}/libqemu.so" | grep NEEDED || true
-          if ! readelf -d "${libdir}/libqemu_img.so" | grep -q 'Shared library: \[libssh.so\]'; then
-            echo "::error::libqemu_img.so does not declare libssh.so as a direct dependency; verify upstream binary/source."
+          readelf -d "${libdir}/libssh.so" | grep NEEDED
+          if ! readelf -d "${libdir}/libqemu_img.so" | grep -Fq 'Shared library: [libssh.so]'; then
+            echo "::error::libqemu_img.so does not declare libssh.so as a direct dependency"
             exit 1
           fi
-          curl -fL --retry 3 "https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_ref}/LICENSE" -o android/app/src/main/assets/third_party/POCKR-MIT-LICENSE.txt
 
-      - name: Fetch AArch64 UEFI firmware
+      - name: Get AArch64 UEFI firmware from Ubuntu package
         shell: bash
         run: |
           set -euo pipefail
-          firmware_url="https://raw.githubusercontent.com/AI2TH/Pockr/main/android/app/src/main/assets/firmware/QEMU_EFI.fd"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-efi-aarch64
           mkdir -p android/app/src/main/assets/firmware
-          curl -fL --retry 3 "${firmware_url}" -o android/app/src/main/assets/firmware/QEMU_EFI.fd
+          python3 - <<'PY'
+          import glob, os, shutil
+          candidates = glob.glob("/usr/share/**/QEMU_EFI.fd", recursive=True)
+          candidates += glob.glob("/usr/share/**/AAVMF_CODE.fd", recursive=True)
+          candidates = [p for p in candidates if os.path.isfile(p) and os.path.getsize(p) > 0]
+          if not candidates:
+              raise SystemExit("No usable AArch64 UEFI firmware found in qemu-efi-aarch64 package")
+          src = max(candidates, key=lambda p: os.path.getsize(p))
+          dst = "android/app/src/main/assets/firmware/QEMU_EFI.fd"
+          shutil.copyfile(src, dst)
+          print(f"Firmware source: {src}")
+          print(f"Firmware size: {os.path.getsize(dst)} bytes")
+          PY
           test -s android/app/src/main/assets/firmware/QEMU_EFI.fd
+          sha256sum android/app/src/main/assets/firmware/QEMU_EFI.fd
 
       - name: Build debug APK
         run: gradle --no-daemon -p android assembleDebug
