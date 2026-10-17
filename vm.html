@@ -16,22 +16,23 @@
 <div class="layout">
 <section class="panel">
 <h2>가상 화면</h2>
-<div class="screen" id="screen"><div class="screen-content"><div class="symbol">▣</div><h2>YangVM 세션 대기 중</h2><p class="muted" id="screenMessage">이 영역은 아직 실제 VM 화면 스트림에 연결되지 않았습니다.</p></div></div>
-<div class="actions"><button class="primary" id="start">▶ 브라우저 VM 데모 열기</button><button id="notes">실험 메모 추가</button></div>
-<div class="stats"><div class="stat"><small>세션 상태</small><strong id="state">연결 전</strong></div><div class="stat"><small>VM 엔진</small><strong>v86 · 외부 데모</strong></div><div class="stat"><small>공동 접속</small><strong>아직 미구현</strong></div><div class="stat"><small>서버</small><strong>사용하지 않음</strong></div></div>
+<div class="screen" id="screen" style="display:block;min-height:360px;padding:0"><iframe id="vmFrame" title="공식 v86 브라우저 가상 컴퓨터 데모" src="https://copy.sh/v86/?profile=kolibrios" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="fullscreen; gamepad" allowfullscreen style="display:block;width:100%;height:65vh;min-height:360px;border:0;border-radius:11px;background:#05070b"></iframe></div>
+<div class="actions"><a class="btn primary" href="https://copy.sh/v86/?profile=kolibrios" target="_blank" rel="noopener noreferrer">↗ 새 탭에서 VM 열기</a><button id="reload">VM 페이지 다시 불러오기</button><button id="notes">실험 메모 추가</button></div>
+<div class="stats"><div class="stat"><small>세션 상태</small><strong id="state">외부 데모 로딩</strong></div><div class="stat"><small>VM 엔진</small><strong>v86 · 공식 사이트 내 실행</strong></div><div class="stat"><small>공동 접속</small><strong>아직 미구현</strong></div><div class="stat"><small>서버</small><strong>사용하지 않음</strong></div></div>
 </section>
 <aside class="panel">
 <h2>실험실 패널</h2><p class="muted">현재 세션</p><div class="room-list"><div class="room"><span>YangVM VM Room</span><span class="dot">● 준비</span></div><div class="room"><span>접속자</span><strong>1 · 나</strong></div><div class="room"><span>조작 권한</span><strong>로컬 UI</strong></div></div>
 <h2 style="margin-top:22px">실험 메모</h2><textarea id="memo" rows="5" style="width:100%;resize:vertical;background:#080d15;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit" placeholder="예: 어떤 OS를 실행했는지, 속도와 오류를 기록해요."></textarea><div class="actions"><button id="save">이 기기에 저장</button><button id="clear">지우기</button></div><p class="muted" id="saveState" aria-live="polite">메모는 이 브라우저에만 저장됩니다.</p>
 </aside>
 </div>
-<div class="notice"><b>정확한 상태:</b> 이 페이지는 CollabVM 스타일의 인터페이스 프로토타입입니다. 자체 QEMU 서버, VM 화면 스트리밍, 키보드·마우스 전달, 다중 사용자 동기화는 아직 구현되지 않았습니다. ‘브라우저 VM 데모 열기’는 공식 v86 사이트를 새 탭에서 열 뿐이며, YangVM과 연결되지는 않습니다.</div>
-<section class="panel" style="margin-top:14px"><h2>다음 개발 단계</h2><ol><li>v86 같은 브라우저 에뮬레이터를 이 프로젝트 안에서 실제로 실행하도록 통합하고 합법적으로 배포된 테스트 이미지를 연결.</li><li>실제 화면과 키보드 입력을 모바일 브라우저에서 검증.</li><li>여러 사용자가 같은 VM을 조작하는 기능이 필요하면 서버·접속 제어·악용 방지 기능을 별도 설계.</li></ol><p class="muted">현재 구현 완료: UI, 상태 표시, 브라우저 로컬 메모. 실제 VM 연결과 공동 조작은 미완료입니다.</p><p><a href="./lab.html">← YangVM Lab</a> · <a href="./index.html">Tiny CPU 실험기로 돌아가기</a> · <a href="https://github.com/copy/v86" target="_blank" rel="noopener noreferrer">v86 소스 코드</a></p></section>
+<div class="notice"><b>정확한 상태:</b> 화면 안에는 공식 v86 데모를 삽입했습니다. 브라우저에서 게스트 OS를 실행할 수 있지만, VM 엔진과 이미지 파일은 copy.sh가 제공하며 YangVM이 직접 호스팅하지 않습니다. 임베드가 차단되면 ‘새 탭에서 VM 열기’를 사용하세요. 자체 QEMU 서버, YangVM의 VM 화면 스트리밍, 다중 사용자 동기화는 아직 구현되지 않았습니다.</div>
+<section class="panel" style="margin-top:14px"><h2>다음 개발 단계</h2><ol><li>v86 같은 브라우저 에뮬레이터를 이 프로젝트 안에서 실제로 실행하도록 통합하고 합법적으로 배포된 테스트 이미지를 연결.</li><li>실제 화면과 키보드 입력을 모바일 브라우저에서 검증.</li><li>여러 사용자가 같은 VM을 조작하는 기능이 필요하면 서버·접속 제어·악용 방지 기능을 별도 설계.</li></ol><p class="muted">현재 구현: UI, 공식 v86 데모 삽입, 브라우저 로컬 메모. YangVM 자체 VM 호스팅과 공동 조작은 미완료입니다.</p><p><a href="./lab.html">← YangVM Lab</a> · <a href="./index.html">Tiny CPU 실험기로 돌아가기</a> · <a href="https://github.com/copy/v86" target="_blank" rel="noopener noreferrer">v86 소스 코드</a></p></section>
 <footer>YangVM · 오픈소스 실험 프로젝트 · 외부 VM 데모는 별도 서비스입니다.</footer>
 </main>
 <script>
 const $=id=>document.getElementById(id);
-$("start").addEventListener("click",()=>{window.open("https://copy.sh/v86/","_blank","noopener,noreferrer");$("state").textContent="외부 데모 열기 시도";$("screenMessage").textContent="공식 v86 데모를 새 탭에서 열었습니다. 이 페이지의 화면과는 아직 연결되지 않습니다.";});
+$("reload").addEventListener("click",()=>{$("vmFrame").src="https://copy.sh/v86/?profile=kolibrios";$("state").textContent="외부 데모 다시 불러오는 중";});
+$("vmFrame").addEventListener("load",()=>{$("state").textContent="외부 데모 페이지 로드됨";});
 $("notes").addEventListener("click",()=>{$("memo").focus();$("memo").scrollIntoView({behavior:"smooth",block:"center"});});
 try{$("memo").value=localStorage.getItem("yangvm-vm-notes")||"";}catch(e){}
 $("save").addEventListener("click",()=>{try{localStorage.setItem("yangvm-vm-notes",$("memo").value);$("saveState").textContent="저장 완료 · 현재 브라우저에만 저장됨";}catch(e){$("saveState").textContent="저장할 수 없습니다. 브라우저 저장 설정을 확인해 주세요."; }});
