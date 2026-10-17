@@ -272,14 +272,13 @@ public class QemuConsoleActivity extends Activity {
                         "-drive", "if=none,file=" + isoFile.getAbsolutePath() + ",media=cdrom,readonly=on,id=cd0",
                         "-device", "virtio-scsi-device,id=scsi0",
                         "-device", "scsi-cd,drive=cd0,bus=scsi0.0",
-                        "-boot", "order=d",
+                        "-boot", "order=c,once=d,menu=off",
                         "-netdev", "user,id=net0",
                         "-device", "virtio-net-device,netdev=net0",
                         "-device", "virtio-gpu-device",
                         "-vnc", "127.0.0.1:0",
                         "-serial", "stdio",
-                        "-monitor", "none",
-                        "-no-reboot"
+                        "-monitor", "none"
                 ));
                 checkStartupNotCancelled();
                 ProcessBuilder pb = new ProcessBuilder(cmd);

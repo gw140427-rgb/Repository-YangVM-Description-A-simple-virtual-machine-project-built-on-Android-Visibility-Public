@@ -21,7 +21,7 @@ NeoVM is an Android-first virtual machine manager prototype inspired by desktop 
 - The app copies the selected ISO into private app storage, verifies its copied size, and only switches the copy after the new file is complete. It creates a sparse QCOW2 disk. Ensure there is enough free storage. The ISO source file is not deleted.
 - VM profiles, copied ISO files, firmware cache, and virtual disks are stored in the app's private data. Uninstalling the app removes these local files. GitHub-hosted debug builds may use different signing keys between runs, so do not uninstall an existing installation that contains data you need to preserve unless you have made a separate backup.
 - Emulation may be slow and memory-intensive on a phone. Choose modest RAM settings first; Android may terminate the app if system memory is low.
-- Startup now creates firmware and new QCOW2 disks through temporary files, checks existing QCOW2 disks before attaching them, and cancels startup if the console activity is closed. These checks reduce stale partial-file and orphan-process problems but do not replace a runtime guest-boot test.
+- Startup now creates firmware and new QCOW2 disks through temporary files, checks existing QCOW2 disks before attaching them, cancels startup if the console activity is closed, and uses a one-time CD boot followed by disk-first boot so installer reboots can proceed to the installed system. These checks reduce stale partial-file and orphan-process problems but do not replace a runtime guest-boot test.
 - APK build success proves compilation only. Actual guest boot and VNC rendering on a physical Galaxy A16 have not been tested by this workflow.
 
 ## Build
