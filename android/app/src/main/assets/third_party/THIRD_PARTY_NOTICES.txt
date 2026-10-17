@@ -16,3 +16,8 @@ Source: https://github.com/AI2TH/Pockr
 The ARM64 runtime bundle contains third-party shared libraries with their own license terms. Users redistributing the APK should review the pinned upstream repository and the licenses for each bundled dependency. This notice is not legal advice.
 
 NeoVM does not claim to be affiliated with VMware, QEMU, or AI2TH/Pockr.
+
+4. AArch64 UEFI firmware
+The QEMU_EFI.fd firmware is obtained from the Ubuntu qemu-efi-aarch64 package during the GitHub Actions build. It is based on TianoCore EDK II. Review the package metadata and upstream EDK II license for the exact applicable license and notices.
+Ubuntu package: https://packages.ubuntu.com/
+EDK II source: https://github.com/tianocore/edk2
