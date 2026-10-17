@@ -47,6 +47,18 @@ jobs:
           curl -fL --retry 3 "https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_commit}/LICENSE" -o android/app/src/main/assets/third_party/POCKR-MIT-LICENSE.txt
           test -s android/app/src/main/jniLibs/arm64-v8a/libqemu.so
           test -s android/app/src/main/jniLibs/arm64-v8a/libqemu_img.so
+      - name: Fetch AArch64 UEFI firmware
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          cd /tmp
+          apt-get download qemu-efi-aarch64
+          mkdir -p /tmp/neovm-uefi android/app/src/main/assets/firmware
+          dpkg-deb -x /tmp/qemu-efi-aarch64_*.deb /tmp/neovm-uefi
+          firmware="$(find /tmp/neovm-uefi/usr/share -name 'QEMU_EFI.fd' -o -name 'AAVMF_CODE.fd' | head -n 1)"
+          test -n "$firmware"
+          cp "$firmware" "$GITHUB_WORKSPACE/android/app/src/main/assets/firmware/QEMU_EFI.fd"
+          test -s "$GITHUB_WORKSPACE/android/app/src/main/assets/firmware/QEMU_EFI.fd"
       - name: Build debug APK
         run: gradle --no-daemon -p android assembleDebug
       - name: Upload APK
