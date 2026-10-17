@@ -1,0 +1,82 @@
+name: NeoVM libssh dependency fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/libssh-dependency
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: fix/libssh-dependency
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Fetch pinned ARM64 QEMU runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          upstream_commit="main"
+          base_url="https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_commit}/android/app/src/main/jniLibs/arm64-v8a"
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a android/app/src/main/assets/third_party
+          curl -fL --retry 3 "${base_url}/libqemu.so" -o android/app/src/main/jniLibs/arm64-v8a/libqemu.so
+          curl -fL --retry 3 "${base_url}/libqemu_img.so" -o android/app/src/main/jniLibs/arm64-v8a/libqemu_img.so
+          curl -fL --retry 3 "${base_url}/libssh.so" -o android/app/src/main/jniLibs/arm64-v8a/libssh.so
+          test -s android/app/src/main/jniLibs/arm64-v8a/libssh.so
+          file android/app/src/main/jniLibs/arm64-v8a/libssh.so
+          llvm-readelf -d android/app/src/main/jniLibs/arm64-v8a/libqemu_img.so | grep -E 'NEEDED|libssh'
+          llvm-readelf -d android/app/src/main/jniLibs/arm64-v8a/libssh.so | grep NEEDED || true
+          curl -fL --retry 3 "https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_commit}/LICENSE" -o android/app/src/main/assets/third_party/POCKR-MIT-LICENSE.txt
+
+      - name: Fetch AArch64 UEFI firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          firmware_url="https://raw.githubusercontent.com/AI2TH/Pockr/main/android/app/src/main/assets/firmware/QEMU_EFI.fd"
+          mkdir -p android/app/src/main/assets/firmware
+          curl -fL --retry 3 "${firmware_url}" -o android/app/src/main/assets/firmware/QEMU_EFI.fd
+          test -s android/app/src/main/assets/firmware/QEMU_EFI.fd
+
+      - name: Build debug APK
+        run: gradle --no-daemon -p android assembleDebug
+
+      - name: Check APK contains ARM64 runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="android/app/build/outputs/apk/debug/app-debug.apk"
+          unzip -l "$apk" | grep -E 'lib/arm64-v8a/lib(qemu|qemu_img|ssh)\.so'
+          unzip -p "$apk" lib/arm64-v8a/libssh.so > /tmp/libssh.so
+          test -s /tmp/libssh.so
+          file /tmp/libssh.so
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeoVM-libssh-fix-debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
