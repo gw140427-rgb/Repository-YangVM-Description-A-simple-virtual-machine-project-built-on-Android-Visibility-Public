@@ -32,6 +32,16 @@ jobs:
           packages: 'platform-tools'
       - name: Install Android SDK packages
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Fetch pinned ARM64 QEMU runtime
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 "https://codeload.github.com/AI2TH/Pockr/zip/f6d43483cc519987b4048962ea96303d99f3030d" -o /tmp/pockr.zip
+          unzip -q /tmp/pockr.zip -d /tmp/pockr-src
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a android/app/src/main/assets/third_party
+          cp -a /tmp/pockr-src/Pockr-f6d43483cc519987b4048962ea96303d99f3030d/android/app/src/main/jniLibs/arm64-v8a/. android/app/src/main/jniLibs/arm64-v8a/
+          cp /tmp/pockr-src/Pockr-f6d43483cc519987b4048962ea96303d99f3030d/LICENSE android/app/src/main/assets/third_party/POCKR-MIT-LICENSE.txt
+          test -s android/app/src/main/jniLibs/arm64-v8a/libqemu.so
+          test -s android/app/src/main/jniLibs/arm64-v8a/libqemu_img.so
       - name: Build debug APK
         run: gradle --no-daemon -p android assembleDebug
       - name: Upload APK
