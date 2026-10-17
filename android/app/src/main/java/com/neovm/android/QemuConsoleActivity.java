@@ -163,11 +163,7 @@ public class QemuConsoleActivity extends Activity {
                 copyIsoIfNeeded();
                 if (!diskFile.exists()) {
                     append("가상 디스크 생성 중 (" + diskGb + "GB, QCOW2 sparse image)...\n");
-                    Process create = new ProcessBuilder(qemuImg.getAbsolutePath(), "create", "-f", "qcow2", diskFile.getAbsolutePath(), diskGb + "G")
-                            .redirectErrorStream(true)
-                            .environment().containsKey("PATH")
-                            ? null : null;
-                    // Construct separately so QEMU's native dependencies can be resolved.
+                    // Create a sparse QCOW2 disk using the bundled qemu-img binary.
                     ProcessBuilder diskBuilder = new ProcessBuilder(qemuImg.getAbsolutePath(), "create", "-f", "qcow2", diskFile.getAbsolutePath(), diskGb + "G");
                     diskBuilder.environment().put("LD_LIBRARY_PATH", getApplicationInfo().nativeLibraryDir);
                     diskBuilder.redirectErrorStream(true);
