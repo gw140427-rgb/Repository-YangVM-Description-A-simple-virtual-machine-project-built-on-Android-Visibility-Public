@@ -287,9 +287,22 @@ public class QemuConsoleActivity extends Activity {
                 Process proc = pb.start();
                 qemuProcess = proc;
                 if (cancelStartup) {
-                    proc.destroy();
-                    if (!proc.waitFor(3, TimeUnit.SECONDS)) proc.destroyForcibly();
-                    if (qemuProcess == proc) qemuProcess = null;
+                    try {
+                        proc.destroy();
+                        if (!proc.waitFor(3, TimeUnit.SECONDS)) {
+                            proc.destroyForcibly();
+                            proc.waitFor(2, TimeUnit.SECONDS);
+                        }
+                    } finally {
+                        if (qemuProcess == proc) qemuProcess = null;
+                        starting = false;
+                    }
+                    if (!isFinishing()) main.post(() -> {
+                        startButton.setEnabled(true);
+                        stopButton.setEnabled(false);
+                        if (screenButton != null) screenButton.setEnabled(false);
+                        status.setText("●  시작 취소됨");
+                    });
                     return;
                 }
                 main.post(() -> {
@@ -436,7 +449,17 @@ public class QemuConsoleActivity extends Activity {
         cancelStartup = true;
         Process p = qemuProcess;
         if (p == null) {
-            starting = false;
+            if (starting) {
+                // Do not enable Start again until the worker has observed cancellation.
+                // Otherwise a second click could clear cancelStartup and revive the first worker.
+                if (!isFinishing()) {
+                    status.setText("●  시작 취소 중...");
+                    startButton.setEnabled(false);
+                    stopButton.setEnabled(false);
+                    if (screenButton != null) screenButton.setEnabled(false);
+                }
+                return;
+            }
             if (!isFinishing()) {
                 status.setText("●  중지됨");
                 startButton.setEnabled(true);
