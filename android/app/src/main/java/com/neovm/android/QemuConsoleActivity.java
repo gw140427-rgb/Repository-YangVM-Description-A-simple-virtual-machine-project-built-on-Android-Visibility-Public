@@ -173,11 +173,21 @@ public class QemuConsoleActivity extends Activity {
         append("VM 시작 요청: QEMU 런타임 확인 중...\n");
         new Thread(() -> {
             try {
-                File qemu = new File(getApplicationInfo().nativeLibraryDir, "libqemu.so");
-                File qemuImg = new File(getApplicationInfo().nativeLibraryDir, "libqemu_img.so");
-                if (!qemu.isFile() || !qemuImg.isFile()) {
-                    throw new IllegalStateException("이 APK에 ARM64 QEMU 런타임이 없습니다. GitHub Actions의 최신 NeoVM-debug-APK 빌드를 사용해 주세요.");
+                File nativeDir = new File(getApplicationInfo().nativeLibraryDir);
+                File qemu = new File(nativeDir, "libqemu.so");
+                File qemuImg = new File(nativeDir, "libqemu_img.so");
+                File libSsh = new File(nativeDir, "libssh.so");
+                if (!qemu.isFile() || !qemuImg.isFile() || !libSsh.isFile()) {
+                    throw new IllegalStateException(
+                            "QEMU 런타임 의존 라이브러리가 누락됐습니다.\\n" +
+                            "라이브러리 폴더: " + nativeDir.getAbsolutePath() + "\\n" +
+                            "libqemu.so: " + qemu.isFile() + "\\n" +
+                            "libqemu_img.so: " + qemuImg.isFile() + "\\n" +
+                            "libssh.so: " + libSsh.isFile() + "\\n" +
+                            "GitHub Actions의 최신 NeoVM-libssh-fix-debug-APK 빌드를 설치해 주세요.");
                 }
+                append("네이티브 라이브러리 폴더: " + nativeDir.getAbsolutePath() + "\\n");
+                append("libssh.so 확인 완료 (" + libSsh.length() + " bytes).\\n");
                 checkStartupNotCancelled();
                 if (!vmDir.mkdirs() && !vmDir.isDirectory()) {
                     throw new IllegalStateException("VM 저장 폴더를 만들 수 없습니다: " + vmDir.getAbsolutePath());
@@ -231,7 +241,9 @@ public class QemuConsoleActivity extends Activity {
                         throw new IllegalStateException("이전 임시 가상 디스크를 정리할 수 없습니다.");
                     }
                     ProcessBuilder diskBuilder = new ProcessBuilder(qemuImg.getAbsolutePath(), "create", "-f", "qcow2", diskTemp.getAbsolutePath(), diskGb + "G");
-                    diskBuilder.environment().put("LD_LIBRARY_PATH", getApplicationInfo().nativeLibraryDir);
+                    diskBuilder.environment().put("LD_LIBRARY_PATH", nativeDir.getAbsolutePath());
+                    diskBuilder.environment().put("PATH", nativeDir.getAbsolutePath() + File.pathSeparator + System.getenv("PATH"));
+                    diskBuilder.directory(vmDir);
                     diskBuilder.redirectErrorStream(true);
                     Process diskProc = diskBuilder.start();
                     String diskOutput = readAll(diskProc.getInputStream());
@@ -249,7 +261,9 @@ public class QemuConsoleActivity extends Activity {
 
                 // Inspect any existing disk before attaching it; never recreate or overwrite an existing user disk.
                 ProcessBuilder infoBuilder = new ProcessBuilder(qemuImg.getAbsolutePath(), "info", diskFile.getAbsolutePath());
-                infoBuilder.environment().put("LD_LIBRARY_PATH", getApplicationInfo().nativeLibraryDir);
+                infoBuilder.environment().put("LD_LIBRARY_PATH", nativeDir.getAbsolutePath());
+                infoBuilder.environment().put("PATH", nativeDir.getAbsolutePath() + File.pathSeparator + System.getenv("PATH"));
+                infoBuilder.directory(vmDir);
                 infoBuilder.redirectErrorStream(true);
                 Process infoProc = infoBuilder.start();
                 String diskInfo = readAll(infoProc.getInputStream());
@@ -295,7 +309,9 @@ public class QemuConsoleActivity extends Activity {
                 ));
                 checkStartupNotCancelled();
                 ProcessBuilder pb = new ProcessBuilder(cmd);
-                pb.environment().put("LD_LIBRARY_PATH", getApplicationInfo().nativeLibraryDir);
+                pb.environment().put("LD_LIBRARY_PATH", nativeDir.getAbsolutePath());
+                pb.environment().put("PATH", nativeDir.getAbsolutePath() + File.pathSeparator + System.getenv("PATH"));
+                pb.directory(vmDir);
                 pb.redirectErrorStream(true);
                 Process proc = pb.start();
                 qemuProcess = proc;
