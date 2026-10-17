@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a0d14">
+<meta name="description" content="YangVM 공동 가상 컴퓨터 실험실 UI 프로토타입">
+<title>YangVM · Cloud VM Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#0a0d14;--panel:#121824;--line:#293446;--text:#edf3ff;--muted:#9eacc1;--blue:#83baff;--green:#7ee0b3;--amber:#ffd58a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Noto Sans KR",sans-serif}a{color:var(--blue)}button,a.btn{font:inherit}header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px max(16px,calc((100% - 1100px)/2));border-bottom:1px solid var(--line);background:#0e131d;position:sticky;top:0}.brand{font-weight:850;font-size:18px}.brand span{display:inline-grid;place-items:center;background:#27518b;border-radius:10px;width:34px;height:34px;margin-right:8px}.tag{font-size:12px;color:var(--green);border:1px solid #2d5e50;border-radius:30px;padding:4px 9px}main{max-width:1100px;margin:auto;padding:24px 16px 50px}.intro h1{font-size:clamp(28px,6vw,42px);line-height:1.12;margin:8px 0}.muted{color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:22px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px;min-width:0}.screen{background:#05070b;border:1px solid #303b4d;border-radius:12px;min-height:230px;display:grid;place-items:center;text-align:center;padding:18px;position:relative;overflow:hidden}.screen:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 3px,#ffffff04 4px 5px);pointer-events:none}.screen-content{position:relative;max-width:430px}.screen h2{font-size:20px;margin:8px 0}.screen .symbol{font-size:44px;opacity:.85}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn,button{display:inline-block;border:1px solid #40516b;border-radius:10px;padding:10px 13px;text-decoration:none;background:#1b2638;color:var(--text);font-weight:700;cursor:pointer}.primary{background:#91c4ff;color:#061326;border-color:#91c4ff}.warn{color:var(--amber)}.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.stat{background:#0c111a;border:1px solid var(--line);border-radius:10px;padding:10px}.stat small{display:block;color:var(--muted)}.stat strong{font-size:14px}.room-list{display:grid;gap:8px}.room{border:1px solid var(--line);padding:11px;border-radius:10px;display:flex;justify-content:space-between;gap:8px}.dot{color:var(--green)}.notice{border-left:4px solid var(--amber);background:#211e19;color:#f6dfb5;border-radius:0 10px 10px 0;padding:12px 14px;margin-top:16px}h2{font-size:18px;margin:0 0 10px}footer{color:var(--muted);font-size:13px;margin-top:22px;border-top:1px solid var(--line);padding-top:16px}@media(min-width:760px){.layout{grid-template-columns:minmax(0,1.7fr) minmax(250px,1fr)}.screen{min-height:390px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header><div class="brand"><span>Y</span>YangVM <span style="font-size:12px;font-weight:500;color:#9eacc1;background:none;width:auto;margin:0">/ CLOUD VM LAB</span></div><span class="tag">UI 프로토타입</span></header>
+<main>
+<section class="intro"><p class="muted">COLLABORATIVE VIRTUAL COMPUTER · EXPERIMENT</p><h1>브라우저에서 만나는<br>가상 컴퓨터 실험실</h1><p class="muted">CollabVM에서 영감을 받은 모바일 친화형 화면입니다. 실제 게스트 OS 실행은 검증된 브라우저 에뮬레이터 데모를 별도로 열어 확인할 수 있어요.</p></section>
+<div class="layout">
+<section class="panel">
+<h2>가상 화면</h2>
+<div class="screen" id="screen"><div class="screen-content"><div class="symbol">▣</div><h2>YangVM 세션 대기 중</h2><p class="muted" id="screenMessage">이 영역은 아직 실제 VM 화면 스트림에 연결되지 않았습니다.</p></div></div>
+<div class="actions"><button class="primary" id="start">▶ 브라우저 VM 데모 열기</button><button id="notes">실험 메모 추가</button></div>
+<div class="stats"><div class="stat"><small>세션 상태</small><strong id="state">연결 전</strong></div><div class="stat"><small>VM 엔진</small><strong>v86 · 외부 데모</strong></div><div class="stat"><small>공동 접속</small><strong>아직 미구현</strong></div><div class="stat"><small>서버</small><strong>사용하지 않음</strong></div></div>
+</section>
+<aside class="panel">
+<h2>실험실 패널</h2><p class="muted">현재 세션</p><div class="room-list"><div class="room"><span>YangVM VM Room</span><span class="dot">● 준비</span></div><div class="room"><span>접속자</span><strong>1 · 나</strong></div><div class="room"><span>조작 권한</span><strong>로컬 UI</strong></div></div>
+<h2 style="margin-top:22px">실험 메모</h2><textarea id="memo" rows="5" style="width:100%;resize:vertical;background:#080d15;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit" placeholder="예: 어떤 OS를 실행했는지, 속도와 오류를 기록해요."></textarea><div class="actions"><button id="save">이 기기에 저장</button><button id="clear">지우기</button></div><p class="muted" id="saveState" aria-live="polite">메모는 이 브라우저에만 저장됩니다.</p>
+</aside>
+</div>
+<div class="notice"><b>정확한 상태:</b> 이 페이지는 CollabVM 스타일의 인터페이스 프로토타입입니다. 자체 QEMU 서버, VM 화면 스트리밍, 키보드·마우스 전달, 다중 사용자 동기화는 아직 구현되지 않았습니다. ‘브라우저 VM 데모 열기’는 공식 v86 사이트를 새 탭에서 열 뿐이며, YangVM과 연결되지는 않습니다.</div>
+<section class="panel" style="margin-top:14px"><h2>다음 개발 단계</h2><ol><li>v86 같은 브라우저 에뮬레이터를 이 프로젝트 안에서 실제로 실행하도록 통합하고 합법적으로 배포된 테스트 이미지를 연결.</li><li>실제 화면과 키보드 입력을 모바일 브라우저에서 검증.</li><li>여러 사용자가 같은 VM을 조작하는 기능이 필요하면 서버·접속 제어·악용 방지 기능을 별도 설계.</li></ol><p class="muted">현재 구현 완료: UI, 상태 표시, 브라우저 로컬 메모. 실제 VM 연결과 공동 조작은 미완료입니다.</p><p><a href="./lab.html">← YangVM Lab</a> · <a href="./index.html">Tiny CPU 실험기로 돌아가기</a> · <a href="https://github.com/copy/v86" target="_blank" rel="noopener noreferrer">v86 소스 코드</a></p></section>
+<footer>YangVM · 오픈소스 실험 프로젝트 · 외부 VM 데모는 별도 서비스입니다.</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+$("start").addEventListener("click",()=>{window.open("https://copy.sh/v86/","_blank","noopener,noreferrer");$("state").textContent="외부 데모 열기 시도";$("screenMessage").textContent="공식 v86 데모를 새 탭에서 열었습니다. 이 페이지의 화면과는 아직 연결되지 않습니다.";});
+$("notes").addEventListener("click",()=>{$("memo").focus();$("memo").scrollIntoView({behavior:"smooth",block:"center"});});
+try{$("memo").value=localStorage.getItem("yangvm-vm-notes")||"";}catch(e){}
+$("save").addEventListener("click",()=>{try{localStorage.setItem("yangvm-vm-notes",$("memo").value);$("saveState").textContent="저장 완료 · 현재 브라우저에만 저장됨";}catch(e){$("saveState").textContent="저장할 수 없습니다. 브라우저 저장 설정을 확인해 주세요."; }});
+$("clear").addEventListener("click",()=>{$("memo").value="";try{localStorage.removeItem("yangvm-vm-notes");}catch(e){}$("saveState").textContent="메모를 지웠습니다.";});
+</script>
+</body>
+</html>
