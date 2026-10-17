@@ -319,17 +319,20 @@ public class MainActivity extends Activity {
         if (vm.isoUri == null || vm.isoUri.trim().isEmpty()) {
             new AlertDialog.Builder(this)
                     .setTitle("ISO 이미지가 필요해요")
-                    .setMessage("운영체제 설치 ISO를 먼저 선택해 주세요. 다만 현재 NeoVM 버전에는 실제 부팅 엔진이 아직 포함되지 않았어요.")
+                    .setMessage("운영체제 설치 ISO를 먼저 선택해 주세요.")
                     .setNegativeButton("닫기", null)
                     .setPositiveButton("ISO 선택", (d, w) -> chooseIso(vm.id))
                     .show();
             return;
         }
-        new AlertDialog.Builder(this)
-                .setTitle("가상화 엔진이 아직 없어요")
-                .setMessage("'" + vm.name + "'의 설정과 ISO 경로는 저장되어 있어요. 하지만 이 빌드에는 QEMU 등 실제 게스트 운영체제를 실행하는 엔진이 연결되지 않아 아직 부팅할 수 없습니다. 다음 단계에는 ARM64용 엔진 통합이 필요해요.")
-                .setPositiveButton("확인", null)
-                .show();
+        Intent intent = new Intent(this, QemuConsoleActivity.class);
+        intent.putExtra("vm_id", vm.id);
+        intent.putExtra("vm_name", vm.name);
+        intent.putExtra("vm_os", vm.guestOs);
+        intent.putExtra("vm_iso_uri", vm.isoUri);
+        intent.putExtra("vm_ram_mb", vm.ramMb);
+        intent.putExtra("vm_disk_gb", vm.diskGb);
+        startActivity(intent);
     }
 
     private void confirmDelete(VmConfig vm) {
