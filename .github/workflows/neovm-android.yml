@@ -36,14 +36,10 @@ jobs:
         run: |
           set -euo pipefail
           upstream_commit="f6d43483cc519987b4048962ea96303d99f3030d"
-          api_url="https://api.github.com/repos/AI2TH/Pockr/contents/android/app/src/main/jniLibs/arm64-v8a?ref=${upstream_commit}"
-          curl -fL --retry 3 "$api_url" -o /tmp/neovm-qemu-files.json
+          base_url="https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_commit}/android/app/src/main/jniLibs/arm64-v8a"
           mkdir -p android/app/src/main/jniLibs/arm64-v8a android/app/src/main/assets/third_party
-          python3 -c 'import json; x=json.load(open("/tmp/neovm-qemu-files.json")); [print(i["name"], i["download_url"]) for i in x if i.get("type")=="file" and i.get("name","").endswith(".so")]' > /tmp/neovm-qemu-files.txt
-          while read -r name url; do
-            test -n "$name"
-            curl -fL --retry 3 "$url" -o "android/app/src/main/jniLibs/arm64-v8a/$name"
-          done < /tmp/neovm-qemu-files.txt
+          curl -fL --retry 3 "${base_url}/libqemu.so" -o android/app/src/main/jniLibs/arm64-v8a/libqemu.so
+          curl -fL --retry 3 "${base_url}/libqemu_img.so" -o android/app/src/main/jniLibs/arm64-v8a/libqemu_img.so
           curl -fL --retry 3 "https://raw.githubusercontent.com/AI2TH/Pockr/${upstream_commit}/LICENSE" -o android/app/src/main/assets/third_party/POCKR-MIT-LICENSE.txt
           test -s android/app/src/main/jniLibs/arm64-v8a/libqemu.so
           test -s android/app/src/main/jniLibs/arm64-v8a/libqemu_img.so
