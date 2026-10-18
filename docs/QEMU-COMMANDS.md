@@ -1,5 +1,67 @@
 # QEMU 명령어 전체 참고서 — Termux / YangVM
 
+## Termux에서 QEMU 설치하기 (Android)
+
+> 이 절은 설치 절차 안내다. 패키지 저장소와 기기 아키텍처에 따라 제공되는 패키지명이 달라질 수 있으므로, 설치 전에 저장소 검색 결과를 확인한다. 설치는 이 문서를 작성하는 과정에서 사용자의 휴대폰에 직접 실행한 것이 아니다.
+
+### 1. 패키지 목록 갱신
+
+```sh
+pkg update
+pkg upgrade
+```
+
+`pkg upgrade`는 다른 설치 패키지도 업데이트할 수 있으니, 변경 내용을 읽고 진행한다.
+
+### 2. QEMU 관련 패키지 검색
+
+```sh
+pkg search qemu
+pkg search qemu-system
+pkg search qemu-img
+```
+
+### 3. 패키지 설치
+
+검색 결과에 실제로 표시되는 이름만 선택해 설치한다. Termux 저장소에 아래 패키지가 표시된다면 다음과 같이 설치할 수 있다.
+
+```sh
+pkg install qemu-system-aarch64-headless qemu-system-x86-64-headless qemu-utils
+```
+
+**중요:** 위 세 패키지가 모든 Termux 환경에 제공된다고 보장할 수 없다. 패키지 하나가 “Unable to locate package” 오류를 내면 그 이름을 임의로 바꾸지 말고 `pkg search qemu` 결과에서 현재 저장소가 제공하는 정확한 패키지명을 확인한다. 그래픽 창이 필요한 패키지와 headless 패키지는 구성이 다를 수 있다.
+
+### 4. 설치 확인
+
+```sh
+command -v qemu-system-aarch64
+command -v qemu-system-x86_64
+command -v qemu-img
+qemu-system-aarch64 --version
+qemu-system-x86_64 --version
+qemu-img --version
+```
+
+실행 파일이 설치되지 않은 경우 해당 `command -v`는 경로를 출력하지 않는다. QEMU는 설치 패키지에 따라 실행 파일 이름과 제공 도구가 달라질 수 있다.
+
+### 5. 저장 공간과 실행 환경 확인
+
+```sh
+df -h
+free -h
+uname -m
+```
+
+Galaxy A16 같은 ARM64 Android 기기에서 x86_64 운영체제를 실행하면 일반적으로 CPU 소프트웨어 에뮬레이션 비용이 커질 수 있다. KVM을 사용할 수 없는 환경에서는 하드웨어 가속을 가정하지 않는다. 설치된 빌드가 지원하는 기능은 각 실행 파일의 `--help`로 확인한다.
+
+공식/참고 링크:
+- Termux 패키지 저장소: https://github.com/termux/termux-packages
+- Termux 패키지 이슈 및 최신 사용자 보고(공식 저장소 이슈): https://github.com/termux/termux-packages/issues/30743
+- QEMU 다운로드/안정판: https://www.qemu.org/download
+
+---
+
+
 마지막 확인: 2026-10-18  
 목표: QEMU 시스템 에뮬레이터와 관련 도구의 주요 명령·옵션을 한곳에 모으고, 공식 문서의 전체 옵션 색인을 함께 제공한다.
 
